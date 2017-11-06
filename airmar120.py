@@ -20,6 +20,7 @@ def confeditor_loader():
     return AirmarConfEditor()
 
 class Airmar(weewx.drivers.AbstractDevice):
+    syslog.syslog(syslog.LOG_INFO,'airmar: Airmar(weewx.drivers.AbstractDevice)')
     """weewx driver that communicates with an Airmar Weather Station
 
     model: station model, e.g., 'Airmar 120WX'
@@ -32,6 +33,7 @@ class Airmar(weewx.drivers.AbstractDevice):
     [Optional. Default is 10]
     """
     def __init__(self, **stn_dict):
+        syslog.syslog(syslog.LOG_INFO,'airmar: __init__')
         self.model = stn_dict.get('model', 'Airmar120wx')
         self.port = stn_dict.get('port', '/dev/ttyUSB0')
         self.max_tries = int(stn_dict.get('max_tries', 10))
@@ -74,12 +76,14 @@ class Airmar(weewx.drivers.AbstractDevice):
 
 class Station(object):
     def __init__(self, port):
+        syslog.syslog(syslog.LOG_INFO,'airmar: Station __init__')
         self.port = port
         self.baudrate = 4800
         self.timeout = 3 # seconds
         self.serial_port = None
 
     def __enter__(self):
+        syslog.syslog(syslog.LOG_INFO,'airmar: Station __enter__')
         self.open()
         return self
 
@@ -87,7 +91,7 @@ class Station(object):
         self.close()
 
     def open(self):
-        syslog.syslog(syslog.LOG_DEBUG, 'airmar: close serial port %s'  % self.port)
+        syslog.syslog(syslog.LOG_DEBUG, 'airmar: open serial port %s'  % self.port)
         if "://" in self.port:
            self.serial_port = serial.serial_for_url(self.port,
                                 baudrate=self.baudrate,timeout=self.timeout)
@@ -97,7 +101,7 @@ class Station(object):
 
     def close(self):
         if self.serial_port is not None:
-            syslog.syslog(syslog.LOG_DEBUG, 'airmar: open serial port %s'  % self.port)
+            syslog.syslog(syslog.LOG_DEBUG, 'airmar: close serial port %s'  % self.port)
             self.serial_port.close()
             self.serial_port = None
 
@@ -109,6 +113,7 @@ class Station(object):
 
     #@staticmethod
     def parse_readings(self, raw):
+        syslog.syslog(syslog.LOG_INFO,'airmar: Station parser')
         """Airmar.......
         """
         print raw
