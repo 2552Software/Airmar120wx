@@ -71,8 +71,12 @@ class Airmar(weewx.drivers.AbstractDevice):
             yield packet
 
     def _augment_packet(self, packet):
+        if self.last_rain is not None:
+            packet['rain'] = packet['long_term_rain'] - self.last_rain
+        else:
+            packet['rain'] = None
+        self.last_rain = packet['long_term_rain']
         # no wind direction when wind speed is zero
-        logdbg('_augment_packet')
         if 'windSpeed' in packet and not packet['windSpeed']:
             packet['windDir'] = None
 
