@@ -1,4 +1,4 @@
-
+ 
 #!/usr/bin/env python
 
 from __future__ import with_statement
@@ -14,7 +14,7 @@ DEFAULT_PORT = '/dev/ttyUSB0'
 DEBUG_SERIAL = 1
 
 def loader(config_dict, _):
-    syslog.syslog(syslog.LOG_INFO, 'airmar: load %s' % DRIVER_NAME)
+    syslog.syslog(syslog.LOG_INFO, 'airmar: load 1 %s' % DRIVER_NAME)
     return Airmar(**config_dict[DRIVER_NAME])
 
 def confeditor_loader():
