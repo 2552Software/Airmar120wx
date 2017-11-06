@@ -23,7 +23,7 @@ class Airmar(weewx.drivers.AbstractDevice):
     """weewx driver that communicates with an Airmar Weather Station
 
     model: station model, e.g., 'Airmar 120WX'
-    [Optional. Default is 'Airmar 120WX']
+    [Optional. Default is 'Airmar']
 
     port - serial port
     [Required. Default is /dev/ttyUSB0]
@@ -32,7 +32,7 @@ class Airmar(weewx.drivers.AbstractDevice):
     [Optional. Default is 10]
     """
     def __init__(self, **stn_dict):
-        self.model = stn_dict.get('model', 'Airmar 120WX')
+        self.model = stn_dict.get('model', 'Airmar')
         self.port = stn_dict.get('port', '/dev/ttyUSB0')
         self.max_tries = int(stn_dict.get('max_tries', 10))
         self.retry_wait = int(stn_dict.get('retry_wait', 10))
