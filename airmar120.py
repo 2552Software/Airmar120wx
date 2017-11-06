@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 from __future__ import with_statement
@@ -114,7 +113,7 @@ class Station(object):
         buf = buf.strip() # FIXME: is this necessary?
         return buf
     
-     def validate_string(self, buf):
+    def validate_string(self, buf):
         if buf[0:1] != '$':
             loginf("Unexpected header byte '%s'" % buf[0:1])
         if buf[-3:-2] != '*':
