@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+/usr/bin/env python
 
 from __future__ import with_statement
 import serial
@@ -9,8 +9,7 @@ import weewx.drivers
 
 DRIVER_NAME = 'Airmar120wx'
 DRIVER_VERSION = '0.1'
-DEFAULT_PORT = '/dev/ttyUSB0'
-DEBUG_SERIAL = 1
+DEBUG_SERIAL = 0
 
 def loader(config_dict, _):
     return Airmar(**config_dict[DRIVER_NAME])
@@ -18,9 +17,23 @@ def loader(config_dict, _):
 def confeditor_loader():
     return AirmarConfEditor()
 
+DEFAULT_PORT = '/dev/ttyS0'
+
+def logmsg(level, msg):
+    syslog.syslog(level, 'airmar: %s' % msg)
+
+def logdbg(msg):
+    logmsg(syslog.LOG_DEBUG, msg)
+    
+def loginf(msg):
+    logmsg(syslog.LOG_INFO, msg)
+
+def logerr(msg):
+    logmsg(syslog.LOG_ERR, msg)
+
 class Airmar(weewx.drivers.AbstractDevice):
     def __init__(self, **stn_dict):
-        syslog.syslog(syslog.LOG_INFO,'airmar: __init__')
+        loginf('airmar: __init__')
         self.model = stn_dict.get('model', DRIVER_NAME)
         self.port = stn_dict.get('port', DEFAULT_PORT)
         self.max_tries = int(stn_dict.get('max_tries', 10))
@@ -29,8 +42,8 @@ class Airmar(weewx.drivers.AbstractDevice):
 
         global DEBUG_SERIAL
         DEBUG_SERIAL = int(stn_dict.get('debug_serial', 0))
-        syslog.syslog(syslog.LOG_INFO,'airmar: driver version %s' % DRIVER_VERSION)
-        syslog.syslog(syslog.LOG_INFO,'airmar: serial port %s' % self.port)
+        loginf('driver version %s' % DRIVER_VERSION)
+        loginf('serial port %s' % self.port)
         self.station = Station(self.port)
         self.station.open()
 
@@ -45,7 +58,7 @@ class Airmar(weewx.drivers.AbstractDevice):
 
     def genLoopPackets(self):
         while True:
-            syslog.syslog(syslog.LOG_DEBUG, 'airmar: genLoopPackets')
+            logdbg('genLoopPackets')
             packet = {'dateTime': int(time.time() + 0.5),
                       'usUnits': weewx.US}
             readings = self.station.get_readings_with_retry(self.max_tries,
@@ -58,20 +71,20 @@ class Airmar(weewx.drivers.AbstractDevice):
 
     def _augment_packet(self, packet):
         # no wind direction when wind speed is zero
-        syslog.syslog(syslog.LOG_INFO,'airmar:  _augment_packet')
+        logdbg('_augment_packet')
         if 'windSpeed' in packet and not packet['windSpeed']:
             packet['windDir'] = None
 
 class Station(object):
     def __init__(self, port):
-        syslog.syslog(syslog.LOG_INFO,'airmar: Station __init__')
+        loginf('Station __init__')
         self.port = port
         self.baudrate = 4800
         self.timeout = 3 # seconds
         self.serial_port = None
 
     def __enter__(self):
-        syslog.syslog(syslog.LOG_INFO,'airmar: Station __enter__')
+        logdbg('Station __enter__')
         self.open()
         return self
 
@@ -79,7 +92,7 @@ class Station(object):
         self.close()
 
     def open(self):
-        syslog.syslog(syslog.LOG_DEBUG, 'airmar: open serial port %s'  % self.port)
+        loginf('open serial port %s'  % self.port)
         if "://" in self.port:
            self.serial_port = serial.serial_for_url(self.port,
                                 baudrate=self.baudrate,timeout=self.timeout)
@@ -89,19 +102,19 @@ class Station(object):
 
     def close(self):
         if self.serial_port is not None:
-            syslog.syslog(syslog.LOG_DEBUG, 'airmar: close serial port %s'  % self.port)
+            loginf('close serial port %s'  % self.port)
             self.serial_port.close()
             self.serial_port = None
 
     def get_readings(self):
-        syslog.syslog(syslog.LOG_DEBUG, 'airmar: get_readings')
+        loginf('get_readings')
         buf = self.serial_port.readline()
         buf = buf.strip() # FIXME: is this necessary?
         return buf
 
     #@staticmethod
     def parse_readings(self, raw):
-        syslog.syslog(syslog.LOG_INFO,'airmar: Station parser')
+        logdbg('Station parser')
         """Airmar.......
         """
         print raw
@@ -115,7 +128,7 @@ class Station(object):
                 data['altimeter'] = float(buf[1])
                 data['outTemp'] = float(buf[5]) * 1.8 + 32
             except (ValueError):
-                syslog.syslog(syslog.LOG_ERR, "airmar: Wrong data format for $WIMDA '%s, %s, %s, %s, %s, %s, %s'" % (buf[1], buf[5], buf[9], buf[11], buf[13], buf[15], buf[17]))
+                logerr('Wrong data format for $WIMDA '%s, %s, %s, %s, %s, %s, %s'" % (buf[1], buf[5], buf[9], buf[11], buf[13], buf[15], buf[17]))
         elif buf[0] == '$WIMWV': # Wind Speed and Angle
             if buf[5] == 'A':
                 if buf[2] == 'R':
@@ -123,13 +136,13 @@ class Station(object):
                         data['windAngle_rel_mwv'] = float(buf[1])
                         data['windSpeed_rel_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
-                        syslog.syslog(syslog.LOG_ERR, "airmar: Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
+                        logerr('Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
                 elif buf[2] == 'T':
                     try:
                         data['windAngle_theor_mwv'] = float(buf[1])
                         data['windSpeed_theor_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
-                        syslog.syslog(syslog.LOG_ERR, "airmar: Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
+                        slogerr('"airmar: Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
                         
         #else: #Processing of other data sentences
         if 'windDir_true_mwd' in data and data['windDir_true_mwd'] is not None:
