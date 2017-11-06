@@ -187,25 +187,16 @@ class Station(object):
             if buf[5] == 'A':
                 if buf[2] == 'R':
                     try:
-                        data['windAngle_rel_mwv'] = float(buf[1])
-                        data['windSpeed_rel_mwv'] = float(buf[3]) / 1.15077945
+                        data['windDir'] = float(buf[1])
+                        data['windSpeed'] = float(buf[3]) / 1.15077945
                     except (ValueError):
                         logerr("Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
                 elif buf[2] == 'T':
                     try:
-                        data['windAngle_theor_mwv'] = float(buf[1])
-                        data['windSpeed_theor_mwv'] = float(buf[3]) / 1.15077945
+                        data['windDir'] = float(buf[1])
+                        data['windSpeed'] = float(buf[3]) / 1.15077945
                     except (ValueError):
                         logerr("Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
-        #else: #Processing of other data sentences
-        if 'windDir_true_mwd' in data and data['windDir_true_mwd'] is not None:
-            data['windDir'] = data['windDir_true_mwd']
-        elif 'windDir_true_mda' in data and data['windDir_true_mda'] is not None:
-            data['windDir'] = data['windDir_true_mda']
-        if 'windSpeed_mwd' in data and data['windSpeed_mwd'] is not None:
-            data['windSpeed'] = data['windSpeed_mwd']
-        elif 'windSpeed_mda' in data and data['windSpeed_mda'] is not None:
-            data['windSpeed'] = data['windSpeed_mda']
         return data
 
 class AirmarConfEditor(weewx.drivers.AbstractConfEditor):
