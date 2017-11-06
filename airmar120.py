@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+!/usr/bin/env python
 
 from __future__ import with_statement
 import serial
@@ -19,7 +19,7 @@ def confeditor_loader():
     return AirmarConfEditor()
 
 class Airmar(weewx.drivers.AbstractDevice):
-   def __init__(self, **stn_dict):
+    def __init__(self, **stn_dict):
         syslog.syslog(syslog.LOG_INFO,'airmar: __init__')
         self.model = stn_dict.get('model', DRIVER_NAME)
         self.port = stn_dict.get('port', DEFAULT_PORT)
@@ -33,8 +33,8 @@ class Airmar(weewx.drivers.AbstractDevice):
         syslog.syslog(syslog.LOG_INFO,'airmar: serial port %s' % self.port)
         self.station = Station(self.port)
         self.station.open()
-
-    def closePort(self):
+        
+     def closePort(self):
         if self.station is not None:
             self.station.close()
             self.station = None
