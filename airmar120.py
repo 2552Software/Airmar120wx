@@ -129,7 +129,7 @@ class Station(object):
             self.serial_port = None
      
     def get_readings_with_retry(self, max_tries=5, retry_wait=10):
-        for ntries in range(0, max_tries):
+         for ntries in range(0, max_tries):
             try:
                 buf = self.get_readings()
                 self.validate_string(buf)
@@ -168,7 +168,7 @@ class Station(object):
 
     #@staticmethod
     def parse_readings(self, raw):
-        logdbg('Station parser')
+        logdbg('Station parser %s' % raw)
         """Airmar.......
         """
         print raw
