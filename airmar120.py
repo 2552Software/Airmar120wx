@@ -52,7 +52,7 @@ class Airmar(weewx.drivers.AbstractDevice):
             self.station.close()
             self.station = None
             
-        @property
+    @property
     def hardware_name(self):
         return self.model
 
