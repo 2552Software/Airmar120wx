@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 from __future__ import with_statement
@@ -20,20 +19,9 @@ def confeditor_loader():
     return AirmarConfEditor()
 
 class Airmar(weewx.drivers.AbstractDevice):
-     """weewx driver that communicates with an Airmar Weather Station
-
-    model: station model, e.g., 'Airmar 120WX'
-    [Optional. Default is 'Airmar']
-
-    port - serial port
-    [Required. Default is /dev/ttyUSB0]
-
-    max_tries - how often to retry serial communication before giving up
-    [Optional. Default is 10]
-    """
-    def __init__(self, **stn_dict):
+   def __init__(self, **stn_dict):
         syslog.syslog(syslog.LOG_INFO,'airmar: __init__')
-        self.model = stn_dict.get('model', 'Airmar120wx')
+        self.model = stn_dict.get('model', DRIVER_NAME)
         self.port = stn_dict.get('port', DEFAULT_PORT)
         self.max_tries = int(stn_dict.get('max_tries', 10))
         self.retry_wait = int(stn_dict.get('retry_wait', 10))
