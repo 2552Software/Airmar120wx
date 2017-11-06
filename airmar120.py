@@ -1,4 +1,4 @@
-!/usr/bin/env python
+#!/usr/bin/env python
 
 from __future__ import with_statement
 import serial
@@ -33,8 +33,8 @@ class Airmar(weewx.drivers.AbstractDevice):
         syslog.syslog(syslog.LOG_INFO,'airmar: serial port %s' % self.port)
         self.station = Station(self.port)
         self.station.open()
-        
-     def closePort(self):
+
+    def closePort(self):
         if self.station is not None:
             self.station.close()
             self.station = None
