@@ -127,8 +127,8 @@ class Station(object):
             logdbg("close serial port %s" % self.port)
             self.serial_port.close()
             self.serial_port = None
-            
-                def get_readings_with_retry(self, max_tries=5, retry_wait=10):
+     
+    def get_readings_with_retry(self, max_tries=5, retry_wait=10):
         for ntries in range(0, max_tries):
             try:
                 buf = self.get_readings()
