@@ -1,4 +1,4 @@
-/usr/bin/env python
+#!/usr/bin/env python
 
 from __future__ import with_statement
 import serial
@@ -128,7 +128,7 @@ class Station(object):
                 data['altimeter'] = float(buf[1])
                 data['outTemp'] = float(buf[5]) * 1.8 + 32
             except (ValueError):
-                logerr('Wrong data format for $WIMDA '%s, %s, %s, %s, %s, %s, %s'" % (buf[1], buf[5], buf[9], buf[11], buf[13], buf[15], buf[17]))
+                logerr("Wrong data format for $WIMDA '%s, %s, %s, %s, %s, %s, %s'" % (buf[1], buf[5], buf[9], buf[11], buf[13], buf[15], buf[17]))
         elif buf[0] == '$WIMWV': # Wind Speed and Angle
             if buf[5] == 'A':
                 if buf[2] == 'R':
@@ -136,13 +136,13 @@ class Station(object):
                         data['windAngle_rel_mwv'] = float(buf[1])
                         data['windSpeed_rel_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
-                        logerr('Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
+                        logerr("Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
                 elif buf[2] == 'T':
                     try:
                         data['windAngle_theor_mwv'] = float(buf[1])
                         data['windSpeed_theor_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
-                        slogerr('"airmar: Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
+                        logerr("Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
                         
         #else: #Processing of other data sentences
         if 'windDir_true_mwd' in data and data['windDir_true_mwd'] is not None:
