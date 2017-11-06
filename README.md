@@ -1,1 +1,1 @@
-# Airmar120wx
+ #Airmar 120wx driver for Weewx
