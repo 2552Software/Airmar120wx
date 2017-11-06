@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 from __future__ import with_statement
@@ -42,6 +43,7 @@ class Airmar(weewx.drivers.AbstractDevice):
 
         global DEBUG_SERIAL
         DEBUG_SERIAL = int(stn_dict.get('debug_serial', 0))
+        
         loginf('driver version %s' % DRIVER_VERSION)
         loginf('serial port %s' % self.port)
         self.station = Station(self.port)
@@ -111,6 +113,36 @@ class Station(object):
         buf = self.serial_port.readline()
         buf = buf.strip() # FIXME: is this necessary?
         return buf
+    
+     def validate_string(self, buf):
+        if buf[0:1] != '$':
+            loginf("Unexpected header byte '%s'" % buf[0:1])
+        if buf[-3:-2] != '*':
+            loginf("Unexpected footer byte '%s'" % buf[-2:])
+        [mess, cs]  = buf.split("*")
+        mess = mess[1:]
+        cs_new = 0
+        for d in mess:
+            cs_new = cs_new ^ ord(d)
+        cs_new = "%2X" % cs_new
+        if cs_new != cs and "0%s" % str(cs_new).strip() != "%s" % cs:
+            loginf("Unexpected checksum error [%s], [%s]" % (cs_new, cs))
+        return buf
+
+    def get_readings_with_retry(self, max_tries=5, retry_wait=10):
+        for ntries in range(0, max_tries):
+            try:
+                buf = self.get_readings()
+                self.validate_string(buf)
+                return buf
+            except (serial.serialutil.SerialException, weewx.WeeWxIOError), e:
+                loginf("Failed attempt %d of %d to get readings: %s" %
+                       (ntries + 1, max_tries, e))
+                time.sleep(retry_wait)
+        else:
+            msg = "Max retries (%d) exceeded for readings" % max_tries
+            logerr(msg)
+            raise weewx.RetriesExceeded(msg)
 
     #@staticmethod
     def parse_readings(self, raw):
