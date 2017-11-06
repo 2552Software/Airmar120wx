@@ -48,8 +48,11 @@ class Airmar(weewx.drivers.AbstractDevice):
         self.station.open()
 
     def closePort(self):
-        
-    @property
+        if self.station is not None:
+            self.station.close()
+            self.station = None
+            
+        @property
     def hardware_name(self):
         return self.model
 
