@@ -21,7 +21,7 @@ def confeditor_loader():
     return AirmarConfEditor()
 
 class Airmar(weewx.drivers.AbstractDevice):
-    syslog.syslog(syslog.LOG_INFO,'airmar: Airmar(weewx.drivers.AbstractDevice)')
+   
     """weewx driver that communicates with an Airmar Weather Station
 
     model: station model, e.g., 'Airmar 120WX'
@@ -73,6 +73,7 @@ class Airmar(weewx.drivers.AbstractDevice):
 
     def _augment_packet(self, packet):
         # no wind direction when wind speed is zero
+        syslog.syslog(syslog.LOG_INFO,'airmar:  _augment_packet')
         if 'windSpeed' in packet and not packet['windSpeed']:
             packet['windDir'] = None
 
