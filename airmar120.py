@@ -1,4 +1,4 @@
- 
+
 #!/usr/bin/env python
 
 from __future__ import with_statement
@@ -20,8 +20,7 @@ def confeditor_loader():
     return AirmarConfEditor()
 
 class Airmar(weewx.drivers.AbstractDevice):
-   
-    """weewx driver that communicates with an Airmar Weather Station
+     """weewx driver that communicates with an Airmar Weather Station
 
     model: station model, e.g., 'Airmar 120WX'
     [Optional. Default is 'Airmar']
@@ -32,7 +31,6 @@ class Airmar(weewx.drivers.AbstractDevice):
     max_tries - how often to retry serial communication before giving up
     [Optional. Default is 10]
     """
-    
     def __init__(self, **stn_dict):
         syslog.syslog(syslog.LOG_INFO,'airmar: __init__')
         self.model = stn_dict.get('model', 'Airmar120wx')
@@ -144,7 +142,7 @@ class Station(object):
                         data['windSpeed_theor_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
                         syslog.syslog(syslog.LOG_ERR, "airmar: Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
-                    
+                        
         #else: #Processing of other data sentences
         if 'windDir_true_mwd' in data and data['windDir_true_mwd'] is not None:
             data['windDir'] = data['windDir_true_mwd']
@@ -174,7 +172,6 @@ class AirmarConfEditor(weewx.drivers.AbstractConfEditor):
     # The driver to use:
     driver = weewx.drivers.airmar
 """
-
     def prompt_for_settings(self):
         print "Specify the serial port on which the station is connected, for"
         print "example /dev/ttyUSB0 or /dev/ttyS0."
