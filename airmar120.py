@@ -9,7 +9,7 @@ import weewx.drivers
 
 DRIVER_NAME = 'Airmar120wx'
 DRIVER_VERSION = '0.1'
-
+DEFAULT_PORT = '/dev/ttyUSB0'
 DEBUG_SERIAL = 1
 
 def loader(config_dict, _):
@@ -35,7 +35,7 @@ class Airmar(weewx.drivers.AbstractDevice):
     def __init__(self, **stn_dict):
         syslog.syslog(syslog.LOG_INFO,'airmar: __init__')
         self.model = stn_dict.get('model', 'Airmar120wx')
-        self.port = stn_dict.get('port', '/dev/ttyUSB0')
+        self.port = stn_dict.get('port', DEFAULT_PORT)
         self.max_tries = int(stn_dict.get('max_tries', 10))
         self.retry_wait = int(stn_dict.get('retry_wait', 10))
         self.last_rain = None
@@ -160,7 +160,7 @@ class AirmarConfEditor(weewx.drivers.AbstractConfEditor):
     @property
     def default_stanza(self):
         return """
-[Airmar]
+[Airmar120wx]
     # This section is for the Airmar series of weather stations.
 
     # Serial port such as /dev/ttyS0, /dev/ttyUSB0, or /dev/cuaU0
@@ -176,7 +176,7 @@ class AirmarConfEditor(weewx.drivers.AbstractConfEditor):
     def prompt_for_settings(self):
         print "Specify the serial port on which the station is connected, for"
         print "example /dev/ttyUSB0 or /dev/ttyS0."
-        port = self._prompt('port', '/dev/ttyUSB0')
+        port = self._prompt('port', DEFAULT_PORT)
         return {'port': port}
 
 
