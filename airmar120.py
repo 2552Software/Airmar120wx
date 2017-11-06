@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 from __future__ import with_statement
@@ -32,6 +33,7 @@ class Airmar(weewx.drivers.AbstractDevice):
     max_tries - how often to retry serial communication before giving up
     [Optional. Default is 10]
     """
+    
     def __init__(self, **stn_dict):
         syslog.syslog(syslog.LOG_INFO,'airmar: __init__')
         self.model = stn_dict.get('model', 'Airmar120wx')
