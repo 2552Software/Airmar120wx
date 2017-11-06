@@ -10,26 +10,14 @@ import weewx.drivers
 DRIVER_NAME = 'Airmar 120wx'
 DRIVER_VERSION = '0.1'
 
-DEBUG_SERIAL = 0
+DEBUG_SERIAL = 1
 
 def loader(config_dict, _):
-    logmsg("load %s" % DRIVER_NAME)
+    syslog.syslog(syslog.LOG_INFO, 'airmar: load %s' % DRIVER_NAME)
     return Airmar(**config_dict[DRIVER_NAME])
 
 def confeditor_loader():
     return AirmarConfEditor()
-
-def logmsg(level, msg):
-    syslog.syslog(level, 'airmar: %s' % msg)
-
-def logdbg(msg):
-    logmsg(syslog.LOG_DEBUG, msg)
-
-def loginf(msg):
-    logmsg(syslog.LOG_INFO, msg)
-
-def logerr(msg):
-    logmsg(syslog.LOG_ERR, msg)
 
 class Airmar(weewx.drivers.AbstractDevice):
     """weewx driver that communicates with an Airmar Weather Station
@@ -52,9 +40,8 @@ class Airmar(weewx.drivers.AbstractDevice):
 
         global DEBUG_SERIAL
         DEBUG_SERIAL = int(stn_dict.get('debug_serial', 0))
-
-        loginf('driver version is %s' % DRIVER_VERSION)
-        loginf('using serial port %s' % self.port)
+        syslog.syslog(syslog.LOG_INFO,'airmar: driver version %s' % DRIVER_VERSION)
+        syslog.syslog(syslog.LOG_INFO,'airmar: serial port %s' % self.port)
         self.station = Station(self.port)
         self.station.open()
 
@@ -69,7 +56,7 @@ class Airmar(weewx.drivers.AbstractDevice):
 
     def genLoopPackets(self):
         while True:
-            logdbg("Loop")
+            syslog.syslog(syslog.LOG_DEBUG, 'airmar: genLoopPackets')
             packet = {'dateTime': int(time.time() + 0.5),
                       'usUnits': weewx.US}
             readings = self.station.get_readings_with_retry(self.max_tries,
@@ -100,7 +87,7 @@ class Station(object):
         self.close()
 
     def open(self):
-        logdbg("open serial port %s" % self.port)
+        syslog.syslog(syslog.LOG_DEBUG, 'airmar: close serial port %s'  % self.port)
         if "://" in self.port:
            self.serial_port = serial.serial_for_url(self.port,
                                 baudrate=self.baudrate,timeout=self.timeout)
@@ -110,47 +97,15 @@ class Station(object):
 
     def close(self):
         if self.serial_port is not None:
-            logdbg("close serial port %s" % self.port)
+            syslog.syslog(syslog.LOG_DEBUG, 'airmar: open serial port %s'  % self.port)
             self.serial_port.close()
             self.serial_port = None
 
     def get_readings(self):
-        logdbg("get readings")
+        syslog.syslog(syslog.LOG_DEBUG, 'airmar: get_readings')
         buf = self.serial_port.readline()
-        if DEBUG_SERIAL:
-            logdbg("station said: %s" % buf)
         buf = buf.strip() # FIXME: is this necessary?
         return buf
-
-    def validate_string(self, buf):
-        if buf[0:1] != '$':
-            loginf("Unexpected header byte '%s'" % buf[0:1])
-        if buf[-3:-2] != '*':
-            loginf("Unexpected footer byte '%s'" % buf[-2:])
-        [mess, cs]  = buf.split("*")
-        mess = mess[1:]
-        cs_new = 0
-        for d in mess:
-            cs_new = cs_new ^ ord(d)
-        cs_new = "%2X" % cs_new
-        if cs_new != cs and "0%s" % str(cs_new).strip() != "%s" % cs:
-            loginf("Unexpected checksum error [%s], [%s]" % (cs_new, cs))
-        return buf
-
-    def get_readings_with_retry(self, max_tries=5, retry_wait=10):
-        for ntries in range(0, max_tries):
-            try:
-                buf = self.get_readings()
-                self.validate_string(buf)
-                return buf
-            except (serial.serialutil.SerialException, weewx.WeeWxIOError), e:
-                loginf("Failed attempt %d of %d to get readings: %s" %
-                       (ntries + 1, max_tries, e))
-                time.sleep(retry_wait)
-        else:
-            msg = "Max retries (%d) exceeded for readings" % max_tries
-            logerr(msg)
-            raise weewx.RetriesExceeded(msg)
 
     #@staticmethod
     def parse_readings(self, raw):
@@ -167,7 +122,7 @@ class Station(object):
                 data['altimeter'] = float(buf[1])
                 data['outTemp'] = float(buf[5]) * 1.8 + 32
             except (ValueError):
-                loginf("Wrong data format for $WIMDA '%s, %s, %s, %s, %s, %s, %s'" % (buf[1], buf[5], buf[9], buf[11], buf[13], buf[15], buf[17]))
+                syslog.syslog(syslog.LOG_ERR, "airmar: Wrong data format for $WIMDA '%s, %s, %s, %s, %s, %s, %s'" % (buf[1], buf[5], buf[9], buf[11], buf[13], buf[15], buf[17]))
         elif buf[0] == '$WIMWV': # Wind Speed and Angle
             if buf[5] == 'A':
                 if buf[2] == 'R':
@@ -175,13 +130,13 @@ class Station(object):
                         data['windAngle_rel_mwv'] = float(buf[1])
                         data['windSpeed_rel_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
-                        loginf("Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
+                        syslog.syslog(syslog.LOG_ERR, "airmar: Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
                 elif buf[2] == 'T':
                     try:
                         data['windAngle_theor_mwv'] = float(buf[1])
                         data['windSpeed_theor_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
-                        loginf("Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
+                        syslog.syslog(syslog.LOG_ERR, "airmar: Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
                     
         #else: #Processing of other data sentences
         if 'windDir_true_mwd' in data and data['windDir_true_mwd'] is not None:
