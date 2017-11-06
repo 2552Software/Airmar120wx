@@ -374,6 +374,8 @@ class Station(object):
 
     #@staticmethod
     def parse_readings(self, raw):
+ def parse_readings(self, raw):
+        logdbg('Station parser')
         """Airmar.......
         """
         print raw
@@ -382,118 +384,35 @@ class Station(object):
         data['long_term_rain'] = None
         (interm, cs) = raw.split("*")
         buf = interm.split(",")
-        if buf[0] == '$HCHDG':
-            try:
-                data['heading_magn'] = float(buf[1])
-                data['deviation_magn'] = float(buf[2])
-                data['variation_magn'] = float(buf[4])
-            except (ValueError):
-                loginf("Wrong data format for $HCHDG '%s, %s, %s'" % (buf[1], buf[2], buf[4]))
-            if buf[3] == 'E':
-                data['deviation_magn'] *= -1 #?????????????
-            if buf[5] == 'E':
-                data['variation_magn'] *= -1 #?????????????
-        elif buf[0] == '$HCHDT':
-            try:
-                data['heading_true'] = float(buf[1])
-            except (ValueError):
-                loginf("Wrong data format for $HCHDT '%s'" % buf[1])
-        elif buf[0] == '$WIMDA':
+        if buf[0] == '$WIMDA': #  Meteorological Composite   Air Temp, Barometric Preasure
             try:
                 data['altimeter'] = float(buf[1])
                 data['outTemp'] = float(buf[5]) * 1.8 + 32
-                data['outHumidity'] = float(buf[9])
-                data['dewpoint'] = float(buf[11]) * 1.8 + 32
-                data['windDir_true_mda'] = float(buf[13])
-                data['windDir_magn_mda'] = float(buf[15])
-                data['windSpeed_mda'] = float(buf[17]) / 1.15077945 #Wind speed, mph
             except (ValueError):
-                loginf("Wrong data format for $WIMDA '%s, %s, %s, %s, %s, %s, %s'" % (buf[1], buf[5], buf[9], buf[11], buf[13], buf[15], buf[17]))
-        elif buf[0] == '$WIMWD':
-            try:
-                data['windDir_true_mwd'] = float(buf[1])
-                data['windDir_magn_mwd'] = float(buf[3])
-                data['windSpeed_mwd'] = float(buf[5]) / 1.15077945
-            except (ValueError):
-                loginf("Wrong data format for $WIMWD '%s, %s, %s'" % (buf[1], buf[3], buf[5]))
-        elif buf[0] == '$WIMWV':
+                logerr("Wrong data format for $WIMDA '%s, %s, %s, %s, %s, %s, %s'" % (buf[1], buf[5], buf[9], buf[11], buf[13], buf[15], buf[17]))
+        elif buf[0] == '$WIMWV': # Wind Speed and Angle
             if buf[5] == 'A':
                 if buf[2] == 'R':
                     try:
                         data['windAngle_rel_mwv'] = float(buf[1])
                         data['windSpeed_rel_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
-                        loginf("Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
+                        logerr("Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
                 elif buf[2] == 'T':
                     try:
                         data['windAngle_theor_mwv'] = float(buf[1])
                         data['windSpeed_theor_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
-                        loginf("Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
-        elif buf[0] == '$TIROT':
-            if buf[2] == 'A':
-                try:
-                    data['tiRot'] = float(buf[1])
-                except (ValueError):
-                    loginf("Wrong data format for $TIROT '%s'" % buf[1])
-        elif buf[0] == '$HCTHS':
-            if buf[2] == 'A':
-                try:
-                    data['true_north_heading'] = float(buf[1])
-                except (ValueError):
-                    loginf("Wrong data format for $HCTHS '%s'" % buf[1])
-        elif buf[0] == '$WIVWR':
-            try:
-                data['windAngle_rel_vess'] = float(buf[1])
-                data['windSpeed_rel_vess'] = float(buf[3]) / 1.15077945
-            except (ValueError):
-                    loginf("Wrong data format for $WIVWR '%s, %s'" % (buf[1], buf[3]))
-            if buf[2] == 'R': #R = right
-                data['windAngle_rel_vess'] *= -1 #???????????????????
-        elif buf[0] == '$WIVWT':
-            try:
-                data['windAngle_true_vess'] = float(buf[1])
-                data['windSpeed_true_vess'] = float(buf[3]) / 1.15077945
-            except (ValueError):
-                    loginf("Wrong data format for $WIVWT '%s, %s'" % (buf[1], buf[3]))
-            if buf[2] == 'R': #R = right
-                data['windAngle_true_vess'] *= -1 #???????????????????????
-        elif buf[0] == '$YXXDR':
-            for idx in [4, 8, 12, 16]:
-                yx_data.clear()
-                try:
-                    typestr = buf[idx]
-                    yx_data = getattr(self, 'calc_'+typestr)(buf, idx)
-                    if 'value' in yx_data:
-                        data[yx_data['name']] = yx_data['value']
-                except (IndexError):
-                    break
-        elif buf[0] == '$WIXDR':
-            if buf[4] == 'RAIN':
-                try:
-                    data['long_term_rain'] = float(buf[2]) * 0.03937007874015748
-                    data['duration_of_rain'] = float(buf[6])
-                    data['rain_intensity'] = float(buf[10]) * 0.03937007874015748
-                    data['peak_rain_intensity'] = float(buf[14]) * 0.03937007874015748
-                except (ValueError):
-                    loginf("Wrong data format for $WIXDR RAIN '%s, %s, %s, %s'" % (buf[2], buf[6], buf[10], buf[14]))
-            if buf[4] == 'WNDA':
-                try:
-                    data['windAngle_unfilt'] = float(buf[2])
-                    data['windSpeed_unfilt'] = float(buf[6]) / 1.15077945
-                except (ValueError):
-                    loginf("Wrong data format for $WIXDR WNDA '%s, %s'" % (buf[2], buf[6]))
+                        logerr("Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
         #else: #Processing of other data sentences
         if 'windDir_true_mwd' in data and data['windDir_true_mwd'] is not None:
             data['windDir'] = data['windDir_true_mwd']
         elif 'windDir_true_mda' in data and data['windDir_true_mda'] is not None:
             data['windDir'] = data['windDir_true_mda']
-
         if 'windSpeed_mwd' in data and data['windSpeed_mwd'] is not None:
             data['windSpeed'] = data['windSpeed_mwd']
         elif 'windSpeed_mda' in data and data['windSpeed_mda'] is not None:
             data['windSpeed'] = data['windSpeed_mda']
-
         return data
 
 class AirmarConfEditor(weewx.drivers.AbstractConfEditor):
