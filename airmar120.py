@@ -48,10 +48,7 @@ class Airmar(weewx.drivers.AbstractDevice):
         self.station.open()
 
     def closePort(self):
-        if self.station is not None:
-            self.station.close()
-            self.station = None
-
+        
     @property
     def hardware_name(self):
         return self.model
@@ -205,6 +202,4 @@ if __name__ == '__main__':
         exit(0)
 
     with Station(options.port) as s:
-        s.set_logger_mode()
-        while True:
             print time.time(), s.get_readings()
