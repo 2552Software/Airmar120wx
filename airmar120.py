@@ -7,8 +7,13 @@ import time
 
 import weewx.drivers
 
-DRIVER_NAME = 'Airmar120wx'
+DRIVER_NAME = 'Airmar'
 DRIVER_VERSION = '0.1'
+
+INHG_PER_BAR = 29.5333727
+METER_PER_FOOT = 0.3048
+MILE_PER_KM = 0.621371
+
 DEBUG_SERIAL = 0
 
 def loader(config_dict, _):
@@ -17,6 +22,7 @@ def loader(config_dict, _):
 def confeditor_loader():
     return AirmarConfEditor()
 
+
 DEFAULT_PORT = '/dev/ttyS0'
 
 def logmsg(level, msg):
@@ -24,17 +30,28 @@ def logmsg(level, msg):
 
 def logdbg(msg):
     logmsg(syslog.LOG_DEBUG, msg)
-    
+
 def loginf(msg):
     logmsg(syslog.LOG_INFO, msg)
 
 def logerr(msg):
     logmsg(syslog.LOG_ERR, msg)
 
+
 class Airmar(weewx.drivers.AbstractDevice):
+    """weewx driver that communicates with an Airmar Weather Station
+
+    model: station model, e.g., 'Airmar 150WX'
+    [Optional. Default is 'Airmar']
+
+    port - serial port
+    [Required. Default is /dev/ttyS0]
+
+    max_tries - how often to retry serial communication before giving up
+    [Optional. Default is 10]
+    """
     def __init__(self, **stn_dict):
-        loginf('airmar: __init__')
-        self.model = stn_dict.get('model', DRIVER_NAME)
+        self.model = stn_dict.get('model', 'Airmar')
         self.port = stn_dict.get('port', DEFAULT_PORT)
         self.max_tries = int(stn_dict.get('max_tries', 10))
         self.retry_wait = int(stn_dict.get('retry_wait', 10))
@@ -42,9 +59,9 @@ class Airmar(weewx.drivers.AbstractDevice):
 
         global DEBUG_SERIAL
         DEBUG_SERIAL = int(stn_dict.get('debug_serial', 0))
-        
-        loginf('driver version %s' % DRIVER_VERSION)
-        loginf('serial port %s' % self.port)
+
+        loginf('driver version is %s' % DRIVER_VERSION)
+        loginf('using serial port %s' % self.port)
         self.station = Station(self.port)
         self.station.open()
 
@@ -52,14 +69,14 @@ class Airmar(weewx.drivers.AbstractDevice):
         if self.station is not None:
             self.station.close()
             self.station = None
-            
+
     @property
     def hardware_name(self):
         return self.model
+    
 
     def genLoopPackets(self):
         while True:
-            logdbg('genLoopPackets')
             packet = {'dateTime': int(time.time() + 0.5),
                       'usUnits': weewx.US}
             readings = self.station.get_readings_with_retry(self.max_tries,
@@ -71,25 +88,25 @@ class Airmar(weewx.drivers.AbstractDevice):
             yield packet
 
     def _augment_packet(self, packet):
+        # calculate the rain delta from rain total
         if self.last_rain is not None:
             packet['rain'] = packet['long_term_rain'] - self.last_rain
         else:
             packet['rain'] = None
         self.last_rain = packet['long_term_rain']
+
         # no wind direction when wind speed is zero
         if 'windSpeed' in packet and not packet['windSpeed']:
             packet['windDir'] = None
 
 class Station(object):
     def __init__(self, port):
-        loginf('Station __init__')
         self.port = port
         self.baudrate = 4800
         self.timeout = 3 # seconds
         self.serial_port = None
 
     def __enter__(self):
-        logdbg('Station __enter__')
         self.open()
         return self
 
@@ -97,7 +114,7 @@ class Station(object):
         self.close()
 
     def open(self):
-        loginf('open serial port %s'  % self.port)
+        logdbg("open serial port %s" % self.port)
         if "://" in self.port:
            self.serial_port = serial.serial_for_url(self.port,
                                 baudrate=self.baudrate,timeout=self.timeout)
@@ -107,16 +124,25 @@ class Station(object):
 
     def close(self):
         if self.serial_port is not None:
-            loginf('close serial port %s'  % self.port)
+            logdbg("close serial port %s" % self.port)
             self.serial_port.close()
             self.serial_port = None
-
-    def get_readings(self):
-        loginf('get_readings')
-        buf = self.serial_port.readline()
-        buf = buf.strip() # FIXME: is this necessary?
-        return buf
-    
+     
+    def get_readings_with_retry(self, max_tries=5, retry_wait=10):
+        for ntries in range(0, max_tries):
+            try:
+                buf = self.get_readings()
+                self.validate_string(buf)
+                return buf
+            except (serial.serialutil.SerialException, weewx.WeeWxIOError), e:
+                loginf("Failed attempt %d of %d to get readings: %s" %
+                       (ntries + 1, max_tries, e))
+                time.sleep(retry_wait)
+        else:
+            msg = "Max retries (%d) exceeded for readings" % max_tries
+            logerr(msg)
+            raise weewx.RetriesExceeded(msg)
+            
     def validate_string(self, buf):
         if buf[0:1] != '$':
             loginf("Unexpected header byte '%s'" % buf[0:1])
@@ -132,20 +158,13 @@ class Station(object):
             loginf("Unexpected checksum error [%s], [%s]" % (cs_new, cs))
         return buf
 
-    def get_readings_with_retry(self, max_tries=5, retry_wait=10):
-        for ntries in range(0, max_tries):
-            try:
-                buf = self.get_readings()
-                self.validate_string(buf)
-                return buf
-            except (serial.serialutil.SerialException, weewx.WeeWxIOError), e:
-                loginf("Failed attempt %d of %d to get readings: %s" %
-                       (ntries + 1, max_tries, e))
-                time.sleep(retry_wait)
-        else:
-            msg = "Max retries (%d) exceeded for readings" % max_tries
-            logerr(msg)
-            raise weewx.RetriesExceeded(msg)
+
+    def get_readings(self):
+        buf = self.serial_port.readline()
+        if DEBUG_SERIAL:
+            logdbg("station said: %s" % buf)
+        buf = buf.strip() # FIXME: is this necessary?
+        return buf
 
     #@staticmethod
     def parse_readings(self, raw):
@@ -168,49 +187,39 @@ class Station(object):
             if buf[5] == 'A':
                 if buf[2] == 'R':
                     try:
-                        data['windAngle_rel_mwv'] = float(buf[1])
-                        data['windSpeed_rel_mwv'] = float(buf[3]) / 1.15077945
+                        data['windDir'] = float(buf[1])
+                        data['windSpeed'] = float(buf[3]) / 1.15077945
                     except (ValueError):
                         logerr("Wrong data format for $WIMWV A-R '%s, %s'" % (buf[1], buf[3]))
                 elif buf[2] == 'T':
                     try:
-                        data['windAngle_theor_mwv'] = float(buf[1])
-                        data['windSpeed_theor_mwv'] = float(buf[3]) / 1.15077945
+                        data['windDir'] = float(buf[1])
+                        data['windSpeed'] = float(buf[3]) / 1.15077945
                     except (ValueError):
                         logerr("Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
-        #else: #Processing of other data sentences
-        if 'windDir_true_mwd' in data and data['windDir_true_mwd'] is not None:
-            data['windDir'] = data['windDir_true_mwd']
-        elif 'windDir_true_mda' in data and data['windDir_true_mda'] is not None:
-            data['windDir'] = data['windDir_true_mda']
-
-        if 'windSpeed_mwd' in data and data['windSpeed_mwd'] is not None:
-            data['windSpeed'] = data['windSpeed_mwd']
-        elif 'windSpeed_mda' in data and data['windSpeed_mda'] is not None:
-            data['windSpeed'] = data['windSpeed_mda']
-
         return data
 
 class AirmarConfEditor(weewx.drivers.AbstractConfEditor):
     @property
     def default_stanza(self):
         return """
-[Airmar120wx]
+[Airmar]
     # This section is for the Airmar series of weather stations.
 
     # Serial port such as /dev/ttyS0, /dev/ttyUSB0, or /dev/cuaU0
     port = /dev/ttyUSB0
 
-    # The station model, e.g., Airmar 120WX
-    model = Airmar120WX
+    # The station model, e.g., Airmar 150WX
+    model = Airmar
 
     # The driver to use:
     driver = weewx.drivers.airmar
 """
+
     def prompt_for_settings(self):
         print "Specify the serial port on which the station is connected, for"
         print "example /dev/ttyUSB0 or /dev/ttyS0."
-        port = self._prompt('port', DEFAULT_PORT)
+        port = self._prompt('port', '/dev/ttyUSB0')
         return {'port': port}
 
 
@@ -239,4 +248,6 @@ if __name__ == '__main__':
         exit(0)
 
     with Station(options.port) as s:
+        s.set_logger_mode()
+        while True:
             print time.time(), s.get_readings()
