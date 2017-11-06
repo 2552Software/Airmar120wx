@@ -339,7 +339,7 @@ class Station(object):
     def calc_HUMT(self, buf, idx):
         data = dict()
         try:
-           data['value'] = float(buf[idx-2]) * 1.8 + 32
+            data['value'] = float(buf[idx-2]) * 1.8 + 32
             data['name'] = "inTemp"
         except (ValueError):
             loginf("Wrong data format for inTemp '%s'" % buf[idx-2])
