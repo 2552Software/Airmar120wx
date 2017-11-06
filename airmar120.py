@@ -178,7 +178,6 @@ class Station(object):
                         data['windSpeed_theor_mwv'] = float(buf[3]) / 1.15077945
                     except (ValueError):
                         logerr("Wrong data format for $WIMWV A-T '%s, %s'" % (buf[1], buf[3]))
-                        
         #else: #Processing of other data sentences
         if 'windDir_true_mwd' in data and data['windDir_true_mwd'] is not None:
             data['windDir'] = data['windDir_true_mwd']
