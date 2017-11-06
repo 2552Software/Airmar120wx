@@ -138,7 +138,7 @@ class Station(object):
                 loginf("Failed attempt %d of %d to get readings: %s" %
                        (ntries + 1, max_tries, e))
                 time.sleep(retry_wait)
-          else:
+         else:
             msg = "Max retries (%d) exceeded for readings" % max_tries
             logerr(msg)
             raise weewx.RetriesExceeded(msg)
